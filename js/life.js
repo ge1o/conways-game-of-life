@@ -1,23 +1,25 @@
 app.Life = (function (document, app) {
 
-    let pattern = [
-        [60, 47],[61,47],[62,47],
-        [60, 48],[61,48],[62,48],
-        [60, 49],[61,49],[62,49],
-        [60, 51],[61,51],[62,51]
-    ];
+    let pattern = {
+        default: [
+            [60, 47],[61,47],[62,47],
+            [60, 48],[61,48],[62,48],
+            [60, 49],[61,49],[62,49],
+            [60, 51],[61,51],[62,51]
+        ],
 
-    let gosperGliderGun = [
-        [1, 5],[1, 6],[2, 5],[2, 6],[11, 5],[11, 6],[11, 7],[12, 4],[12, 8],[13, 3],[13, 9],[14, 3],[14, 9],[15, 6],[16, 4],[16, 8],[17, 5],[17, 6],[17, 7],[18, 6],[21, 3],[21, 4],[21, 5],[22, 3],[22, 4],[22, 5],[23, 2],[23, 6],[25, 1],[25, 2],[25, 6],[25, 7],[35, 3],[35, 4],[36, 3],[36, 4]
-    ];
+        gosperGliderGun: [
+            [1, 5],[1, 6],[2, 5],[2, 6],[11, 5],[11, 6],[11, 7],[12, 4],[12, 8],[13, 3],[13, 9],[14, 3],[14, 9],[15, 6],[16, 4],[16, 8],[17, 5],[17, 6],[17, 7],[18, 6],[21, 3],[21, 4],[21, 5],[22, 3],[22, 4],[22, 5],[23, 2],[23, 6],[25, 1],[25, 2],[25, 6],[25, 7],[35, 3],[35, 4],[36, 3],[36, 4]
+        ]
+    };
 
-    function Life(options) {
-        options = options || this.defaults;
+    function Life(el) {
+        this.el = el;
 
         this.defaults = {
             w: 70,
             h: 70,
-            cellSize: 5,
+            cellSize: 20,
             fillColor: '#1d1d1d',
             blankColor: '#ffffff',
             strokeColor: '#eeeeee'
@@ -37,36 +39,38 @@ app.Life = (function (document, app) {
             this.findNodes();
             this.addHandlers();
             this.buildGrid();
-            this.setPattern(pattern);
+            this.setPattern(pattern.default);
 
-            this.nodes.life.width = this.defaults.w * this.defaults.cellSize;
-            this.nodes.life.height = this.defaults.h * this.defaults.cellSize;
+            this.el.width = this.defaults.w * this.defaults.cellSize;
+            this.el.height = this.defaults.h * this.defaults.cellSize;
 
             this.renderGrid();
         },
 
         findNodes: function() {
             this.nodes = {
-                canvas: document.querySelector('.life').getContext('2d'),
-                life: document.querySelector('.life'),
+                canvas: this.el.getContext('2d'),
+                life: this.el.querySelector('.life'),
                 startButton: document.querySelector('.start'),
                 nextGenButton: document.querySelector('.next-gen'),
                 stopButton: document.querySelector('.stop'),
                 resetButton: document.querySelector('.reset'),
+                clearButton: document.querySelector('.clear'),
                 randomButton: document.querySelector('.random'),
                 gggButton: document.querySelector('.ggg')
             }
         },
 
         addHandlers: function() {
-            this.nodes.life.addEventListener('click', this.placeCell.bind(this));
+            this.el.addEventListener('click', this.placeCell.bind(this));
             this.nodes.startButton.addEventListener('click', this.start.bind(this));
             this.nodes.nextGenButton.addEventListener('click', this.nextGen.bind(this));
             this.nodes.stopButton.addEventListener('click', this.stop.bind(this));
-            this.nodes.resetButton.addEventListener('click', this.reset.bind(this));
+            this.nodes.resetButton.addEventListener('click', this.renderPattern.bind(this, pattern.default));
+            this.nodes.clearButton.addEventListener('click', this.clear.bind(this));
             this.nodes.randomButton.addEventListener('click', this.random.bind(this));
 
-            this.nodes.gggButton.addEventListener('click', this.ggg.bind(this));
+            this.nodes.gggButton.addEventListener('click', this.renderPattern.bind(this, pattern.gosperGliderGun));
         },
 
         placeCell: function(e) {
@@ -78,18 +82,11 @@ app.Life = (function (document, app) {
             yCoord = Math.floor(e.offsetY / cellSize);
 
             if(this.generation.cells[xCoord][yCoord]) {
+                this.deathCell(xCoord, yCoord);
                 this.generation.cells[xCoord][yCoord] = 0;
-                this.nodes.canvas.beginPath();
-                this.nodes.canvas.rect(xCoord*cellSize, yCoord*cellSize, cellSize, cellSize);
-                this.nodes.canvas.fillStyle = this.defaults.blankColor;
-                this.nodes.canvas.strokeStyle = this.defaults.strokeColor;
-                this.nodes.canvas.fill();
-                this.nodes.canvas.stroke();
             } else {
+                this.birthCell(xCoord, yCoord);
                 this.generation.cells[xCoord][yCoord] = 1;
-                this.nodes.canvas.fillStyle = this.defaults.fillColor;
-                this.nodes.canvas.fillRect(Math.floor(e.offsetX / cellSize) * cellSize,
-                    Math.floor(e.offsetY / cellSize) * cellSize, cellSize, cellSize);
             }
         },
 
@@ -108,22 +105,48 @@ app.Life = (function (document, app) {
             }.bind(this));
         },
 
-        renderGrid: function() {
+        birthCell: function(x, y) {
             let cellSize = this.defaults.cellSize;
+            let xPx = x*cellSize;
+            let yPx = y*cellSize;
+            let cellSizeFixed = cellSize;
+
+            xPx = xPx + 1;
+            yPx = yPx + 1;
+            cellSizeFixed = cellSizeFixed - 2;
+
+            this.nodes.canvas.beginPath();
+            this.nodes.canvas.rect(xPx, yPx, cellSizeFixed, cellSizeFixed);
+
+            this.nodes.canvas.fillStyle = this.defaults.fillColor;
+
+            this.nodes.canvas.fill();
+        },
+
+        deathCell: function(x, y) {
+            let cellSize = this.defaults.cellSize;
+
+            this.nodes.canvas.beginPath();
+            this.nodes.canvas.rect(x*cellSize, y*cellSize, cellSize, cellSize);
+
+            this.nodes.canvas.fillStyle = this.defaults.blankColor;
+            this.nodes.canvas.strokeStyle = this.defaults.strokeColor;
+
+            this.nodes.canvas.fill();
+            this.nodes.canvas.stroke();
+        },
+
+        renderGrid: function() {
             let gridSize = this.defaults.w * this.defaults.cellSize;
 
-            this.nodes.canvas.strokeStyle = this.defaults.strokeColor;
-            this.nodes.canvas.fillStyle = this.defaults.fillColor;
             this.nodes.canvas.clearRect(0, 0, gridSize, gridSize);
 
             this.generation.cells.forEach(function(row, x) {
                 row.forEach(function(cell, y) {
-                    this.nodes.canvas.beginPath();
-                    this.nodes.canvas.rect(x*cellSize, y*cellSize, cellSize, cellSize);
                     if (cell) {
-                        this.nodes.canvas.fill();
+                        this.birthCell(x, y);
                     } else {
-                        this.nodes.canvas.stroke();
+                        this.deathCell(x, y);
                     }
                 }.bind(this));
             }.bind(this));
@@ -139,22 +162,22 @@ app.Life = (function (document, app) {
             if (this.isFilled(x-1, y-1)) {
                 neighbours++;
             }
-            if (this.isFilled(x,   y-1)) {
+            if (this.isFilled(x, y-1)) {
                 neighbours++;
             }
             if (this.isFilled(x+1, y-1)) {
                 neighbours++;
             }
-            if (this.isFilled(x-1, y  )) {
+            if (this.isFilled(x-1, y )) {
                 neighbours++;
             }
-            if (this.isFilled(x+1, y  )) {
+            if (this.isFilled(x+1, y)) {
                 neighbours++;
             }
             if (this.isFilled(x-1, y+1)) {
                 neighbours++;
             }
-            if (this.isFilled(x,   y+1)) {
+            if (this.isFilled(x, y+1)) {
                 neighbours++;
             }
             if (this.isFilled(x+1, y+1)) {
@@ -210,9 +233,7 @@ app.Life = (function (document, app) {
             }
         },
 
-        reset: function() {
-            this.setPattern(pattern);
-
+        clear: function() {
             this.buildGrid();
             this.renderGrid();
             this.stop();
@@ -230,9 +251,9 @@ app.Life = (function (document, app) {
             this.renderGrid();
         },
 
-        ggg: function() {
-            this.reset();
-            this.setPattern(gosperGliderGun);
+        renderPattern: function(pattern) {
+            this.clear();
+            this.setPattern(pattern);
             this.renderGrid();
         }
     };
