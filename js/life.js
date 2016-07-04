@@ -35,7 +35,24 @@ app.Life = (function (document, app) {
     }
 
     Life.prototype = {
-        initialize: function() {
+        extend: function(defaults, options) {
+            var extended = {};
+
+            for(key in arguments) {
+                var argument = arguments[key];
+                for (prop in argument) {
+                    if (Object.prototype.hasOwnProperty.call(argument, prop)) {
+                        extended[prop] = argument[prop];
+                    }
+                }
+            }
+
+            return extended;
+        },
+
+        initialize: function(options) {
+            this.defaults = this.extend(this.defaults, options);
+
             this.findNodes();
             this.addHandlers();
             this.buildGrid();
